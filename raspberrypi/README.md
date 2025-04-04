@@ -57,6 +57,8 @@ sudo docker ps
 
 ### Step 4: Install Nginx to host static Website
 
+Install Nginx with the following command
+
     ```bash
     sudo apt-get install nginx
     ```
