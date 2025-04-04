@@ -53,6 +53,7 @@ You can verify if Mosquitto is running by checking the status of your containers
 
 ```bash
 sudo docker ps
+```
 
 ### Step 4: Install Nginx to host static Website
 
@@ -61,7 +62,7 @@ sudo docker ps
     ```
     Installs Nginx on the Raspberry. To start it, execute following command
 
-```bash
+    ```bash
     sudo systemctl start nginx
     ```
 
