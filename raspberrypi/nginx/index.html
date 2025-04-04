@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Subscriber</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        #message {
+            padding: 10px;
+            border: 1px solid #ddd;
+            display: inline-block;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h2>MQTT Subscriber</h2>
+    <div id="message">Waiting for messages...</div>
+
+    <script>
+        var broker = {
+            hostname: "192.168.0.235", // Change to Raspberry Pi's IP if needed
+            port: 8083,
+            clientId: "web_" + Math.random().toString(16).substr(2, 8)
+        };
+
+        var topic = "espnow/data";
+        var client = new Paho.MQTT.Client(broker.hostname, broker.port, broker.clientId);
+
+        function onConnect() {
+            console.log("Connected to MQTT broker");
+            client.subscribe(topic);
+            console.log("Subscribed to topic: " + topic);
+        }
+
+        function onFailure(message) {
+            console.log("Connection to MQTT broker failed: " + message.errorMessage);
+        }
+
+        function onMessageArrived(message) {
+            console.log("Received message: " + message.payloadString);
+            document.getElementById("message").innerHTML = "Received: " + message.payloadString;
+        }
+
+        client.onConnectionLost = onFailure;
+        client.onMessageArrived = onMessageArrived;
+
+        client.connect({
+            onSuccess: onConnect,
+            onFailure: onFailure,
+            useSSL: false
+        });
+    </script>
+</body>
+</html>
