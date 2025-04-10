@@ -1,5 +1,9 @@
 # espnow2mqtt project
 
+# Project Overview
+
+![project overview](./assets/overview.drawio.png)
+
 # Project Setup and Usage Guide
 
 This project consists of three main parts:
