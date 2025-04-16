@@ -1,32 +1,45 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <vector>
+#include <map>
 #include "ESPNowW.h"
 #include "config.h"
 
-// MQTT client
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient mqttClient(espClient);
 
-// Function declarations
+struct Subscriber {
+    uint8_t mac[6];
+};
+
+std::map<String, std::vector<Subscriber>> topicSubscribers;
+
 void setupWiFi(const char* ssid, const char* password);
 void connectToMQTT();
-void onRecv(uint8_t *mac_addr, uint8_t *data, uint8_t data_len);
-void sendToMQTT(const char* topic, const char* message);
+void mqttCallback(char* topic, byte* payload, unsigned int length);
+void handleESPNowMessage(uint8_t* mac, uint8_t* data, uint8_t len);
+void forwardToMQTT(const char* topic, const char* message);
+void forwardToESPNow(const String& topic, const char* message);
+void registerSubscription(const uint8_t* mac, const String& topic);
+bool isAlreadySubscribed(const String& topic, const uint8_t* mac);
+bool macsEqual(const uint8_t* a, const uint8_t* b);
 
 void setup() {
     Serial.begin(9600);
-    Serial.println("ESPNOW Gateway");
+    Serial.println("🔌 Starting ESPNow-MQTT Gateway");
 
     WiFi.disconnect();
     WiFi.mode(WIFI_STA);
     setupWiFi(WIFI_SSID, WIFI_PASSWORD);
-    
-    client.setServer(MQTT_BROKER, MQTT_PORT);
+
+    mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+    mqttClient.setCallback(mqttCallback);
     connectToMQTT();
-    
+
     ESPNow.init();
-    ESPNow.reg_recv_cb(onRecv);
+    ESPNow.reg_recv_cb(handleESPNowMessage);
 }
 
 void loop() {
@@ -78,27 +91,89 @@ void connectToMQTT() {
     }
 }
 
-void onRecv(uint8_t *mac_addr, uint8_t *data, uint8_t data_len) {
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+void handleESPNowMessage(uint8_t* mac, uint8_t* data, uint8_t len) {
+    char message[256] = {0};
+    memcpy(message, data, len);
+    message[len] = '\0';
 
-    Serial.print("MAC ADDRESS of Sender: ");
-    Serial.println(macStr);
-    Serial.print("Data Received: ");
+    StaticJsonDocument<256> doc;
+    if (deserializeJson(doc, message)) {
+        Serial.println("⚠️ JSON parse failed");
+        return;
+    }
 
-    char receivedMessage[250] = {0}; 
-    memcpy(receivedMessage, data, data_len);
-    receivedMessage[data_len] = '\0';
+    String type = doc["type"] | "";
+    String topic = doc["topic"] | "";
 
-    Serial.println(receivedMessage);
-    sendToMQTT("espnow/data", receivedMessage);
+    if (type == "subscribe" && topic != "") {
+        registerSubscription(mac, topic);
+        return;
+    }
+
+    if (topic != "") {
+        forwardToMQTT(topic.c_str(), message);
+    } else {
+        forwardToMQTT("espnow/data", message);
+    }
 }
 
-void sendToMQTT(const char* topic, const char* message) {
-    if (client.publish(topic, message)) {
-        Serial.println("Message sent to MQTT");
+void forwardToMQTT(const char* topic, const char* message) {
+    if (mqttClient.publish(topic, message)) {
+        Serial.printf("📤 Sent to MQTT [%s]: %s\n", topic, message);
     } else {
-        Serial.println("Failed to send message");
+        Serial.printf("❌ MQTT publish failed for topic [%s]\n", topic);
     }
+}
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+    char message[256];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+
+    Serial.printf("📥 MQTT -> ESPNow [%s]: %s\n", topic, message);
+    forwardToESPNow(String(topic), message);
+}
+
+void forwardToESPNow(const String& topic, const char* message) {
+    if (topicSubscribers.find(topic) == topicSubscribers.end()) {
+        Serial.printf("⚠️ No ESPNow subscribers for topic [%s]\n", topic.c_str());
+        return;
+    }
+
+    for (const Subscriber& sub : topicSubscribers[topic]) {
+        ESPNow.send_message((uint8_t*)sub.mac, (uint8_t*)message, strlen(message) + 1);
+        Serial.printf("📨 Forwarded to ESP [%02X:%02X:%02X:%02X:%02X:%02X]\n",
+            sub.mac[0], sub.mac[1], sub.mac[2], sub.mac[3], sub.mac[4], sub.mac[5]);
+    }
+}
+
+void registerSubscription(const uint8_t* mac, const String& topic) {
+    if (isAlreadySubscribed(topic, mac)) {
+        Serial.printf("🔁 Already subscribed to [%s]\n", topic.c_str());
+        return;
+    }
+
+    Subscriber s;
+    memcpy(s.mac, mac, 6);
+    topicSubscribers[topic].push_back(s);
+    mqttClient.subscribe(topic.c_str());
+
+    Serial.printf("✅ New subscription: [%s] for MAC [%02X:%02X:%02X:%02X:%02X:%02X]\n",
+        topic.c_str(), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+bool isAlreadySubscribed(const String& topic, const uint8_t* mac) {
+    for (const Subscriber& s : topicSubscribers[topic]) {
+        if (macsEqual(s.mac, mac)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool macsEqual(const uint8_t* a, const uint8_t* b) {
+    for (int i = 0; i < 6; i++) {
+        if (a[i] != b[i]) return false;
+    }
+    return true;
 }
