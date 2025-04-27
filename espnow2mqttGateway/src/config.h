@@ -2,8 +2,8 @@
 #define CONFIG_H
 
 // WiFi Credentials
-#define WIFI_SSID ""
-#define WIFI_PASSWORD ""
+#define WIFI_SSID "MarlMart"
+#define WIFI_PASSWORD "18c86g9bmckd"
 
 // MQTT Broker Details
 #define MQTT_BROKER "192.168.0.235"

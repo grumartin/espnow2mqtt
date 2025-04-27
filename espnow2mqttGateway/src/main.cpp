@@ -43,7 +43,7 @@ void setup() {
 }
 
 void loop() {
-    client.loop(); // Handle MQTT events
+    mqttClient.loop(); // Handle MQTT events
 }
 
 void setupWiFi(const char* ssid, const char* password) {
@@ -71,22 +71,22 @@ void connectToMQTT() {
     const int maxRetries = 5;
     int attempt = 0;
 
-    while (!client.connected() && attempt < maxRetries) {
+    while (!mqttClient.connected() && attempt < maxRetries) {
         Serial.printf("Attempting MQTT connection (%d/%d)...\n", attempt + 1, maxRetries);
 
-        bool connected = client.connect(MQTT_CLIENT_ID);
+        bool connected = mqttClient.connect(MQTT_CLIENT_ID);
 
         if (connected) {
             Serial.println("✅ Connected to MQTT broker!");
             return;
         } else {
-            Serial.printf("❌ Failed to connect. MQTT state: %d\n", client.state());
+            Serial.printf("❌ Failed to connect. MQTT state: %d\n", mqttClient.state());
             delay(3000);
             attempt++;
         }
     }
 
-    if (!client.connected()) {
+    if (!mqttClient.connected()) {
         Serial.println("🛑 MQTT connection failed after max retries.");
     }
 }
@@ -96,7 +96,7 @@ void handleESPNowMessage(uint8_t* mac, uint8_t* data, uint8_t len) {
     memcpy(message, data, len);
     message[len] = '\0';
 
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     if (deserializeJson(doc, message)) {
         Serial.println("⚠️ JSON parse failed");
         return;
