@@ -72,7 +72,7 @@ void sendSensorData() {
 
   JsonDocument doc;
   doc["type"] = "publish";
-  doc["topic"] = "esp32/dht22";
+  doc["topic"] = "dht22/data";
   doc["temperature_c"] = tempC;
   doc["temperature_f"] = tempF;
   doc["humidity"] = humidity;
