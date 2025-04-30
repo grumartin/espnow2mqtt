@@ -17,7 +17,7 @@ DHT dht(DHTPIN, DHTTYPE);
 uint8_t gatewayMac[] = {0x5C, 0xCF, 0x7F, 0xF0, 0x32, 0xD9};
 
 void handleIncomingMessage(const uint8_t* data, int data_len);
-void onReceive(uint8_t* mac_addr, uint8_t* data, uint8_t data_len);
+void onReceive(const uint8_t* mac_addr, const uint8_t* data, int data_len);
 void sendJson(const JsonDocument& doc);
 void sendSubscription();
 void sendSensorData();
@@ -107,7 +107,7 @@ void handleIncomingMessage(const uint8_t* data, int data_len) {
     return;
   }
 
-  if (!doc.containsKey("topic") || !doc.containsKey("body")) return;
+  if (!doc["topic"].is<const char*>() || !doc["body"].is<const char*>()) return;
 
   String topic = doc["topic"];
   String command = doc["body"];
@@ -125,7 +125,7 @@ void handleIncomingMessage(const uint8_t* data, int data_len) {
   }
 }
 
-void onReceive(uint8_t* mac_addr, uint8_t* data, uint8_t data_len) {
+void onReceive(const uint8_t* mac_addr, const uint8_t* data, int data_len){
   handleIncomingMessage(data, data_len);
 }
 
