@@ -1,68 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MQTT Subscriber</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 5px;
-            text-align: center;
-        }
-        h2 {
-            margin-bottom: 20px;
-        }
-        #message {
-            padding: 10px;
-            border: 1px solid #ddd;
-            display: inline-block;
-            min-width: 200px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ESP32 Sensor Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9f9f9;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      text-align: center;
+    }
+    h2 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+    .value {
+      font-size: 1.5em;
+      margin-top: 5px;
+      color: #222;
+    }
+    .control-buttons {
+      margin-top: 30px;
+    }
+    .control-buttons button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 5px;
+      background-color: #007BFF;
+      color: white;
+      cursor: pointer;
+    }
+    .control-buttons button.active {
+      background-color: #28a745;
+    }
+  </style>
 </head>
 <body>
-    <h2>MQTT Subscriber</h2>
-    <div id="message">Waiting for messages...</div>
+  <h2>🌡️ ESP32 Sensor Dashboard</h2>
 
-    <script>
-        var broker = {
-            hostname: "192.168.0.235", // Change to Raspberry Pi's IP if needed
-            port: 8083,
-            clientId: "web_" + Math.random().toString(16).substr(2, 8)
-        };
+  <div class="card">
+    <div class="label">Temperature (°C)</div>
+    <div id="tempC" class="value">--</div>
+  </div>
 
-        var topic = "espnow/data";
-        var client = new Paho.MQTT.Client(broker.hostname, broker.port, broker.clientId);
+  <div class="card">
+    <div class="label">Temperature (°F)</div>
+    <div id="tempF" class="value">--</div>
+  </div>
 
-        function onConnect() {
-            console.log("Connected to MQTT broker");
-            client.subscribe(topic);
-            console.log("Subscribed to topic: " + topic);
+  <div class="card">
+    <div class="label">Humidity (%)</div>
+    <div id="humidity" class="value">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Heat Index (°C)</div>
+    <div id="heatC" class="value">--</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Heat Index (°F)</div>
+    <div id="heatF" class="value">--</div>
+  </div>
+
+  <div class="control-buttons">
+    <button id="redButton" onclick="toggleLED('red')">Red LED: OFF</button>
+    <button id="greenButton" onclick="toggleLED('green')">Green LED: OFF</button>
+  </div>
+
+  <script>
+    const broker = {
+      hostname: "192.168.0.235",
+      port: 8083,
+      clientId: "web_" + Math.random().toString(16).substr(2, 8)
+    };
+
+    const client = new Paho.MQTT.Client(broker.hostname, broker.port, broker.clientId);
+    const topic = "#";
+
+    let ledState = {
+      red: false,
+      green: false
+    };
+
+    function onConnect() {
+      console.log("Connected to MQTT broker");
+      client.subscribe(topic);
+    }
+
+    function onFailure(message) {
+      console.log("Connection failed: " + message.errorMessage);
+    }
+
+    function onMessageArrived(message) {
+      console.log("Message received: " + message.payloadString);
+      try {
+        const data = JSON.parse(message.payloadString);
+        if (data.temperature_c !== undefined) {
+          document.getElementById("tempC").textContent = data.temperature_c.toFixed(1) + " °C";
         }
-
-        function onFailure(message) {
-            console.log("Connection to MQTT broker failed: " + message.errorMessage);
+        if (data.temperature_f !== undefined) {
+          document.getElementById("tempF").textContent = data.temperature_f.toFixed(1) + " °F";
         }
-
-        function onMessageArrived(message) {
-            console.log("Received message: " + message.payloadString);
-            document.getElementById("message").innerHTML = "Received: " + message.payloadString;
+        if (data.humidity !== undefined) {
+          document.getElementById("humidity").textContent = data.humidity.toFixed(1) + " %";
         }
+        if (data.heat_index_c !== undefined) {
+          document.getElementById("heatC").textContent = data.heat_index_c.toFixed(1) + " °C";
+        }
+        if (data.heat_index_f !== undefined) {
+          document.getElementById("heatF").textContent = data.heat_index_f.toFixed(1) + " °F";
+        }
+      } catch (e) {
+        console.error("Failed to parse MQTT message as JSON", e);
+      }
+    }
 
-        client.onConnectionLost = onFailure;
-        client.onMessageArrived = onMessageArrived;
+    function toggleLED(color) {
+      ledState[color] = !ledState[color];
+      const state = ledState[color] ? "on" : "off";
+      const message = {
+        type: "publish",
+        topic: "led/control",
+        body: `${color}/${state}`
+      };
 
-        client.connect({
-            onSuccess: onConnect,
-            onFailure: onFailure,
-            useSSL: false
-        });
-    </script>
+      const mqttMessage = new Paho.MQTT.Message(JSON.stringify(message));
+      mqttMessage.destinationName = "led/control";
+      client.send(mqttMessage);
+
+      const button = document.getElementById(color + "Button");
+      button.textContent = `${capitalize(color)} LED: ${state.toUpperCase()}`;
+      button.classList.toggle("active", ledState[color]);
+
+      console.log("Sent LED control:", message);
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    client.onConnectionLost = onFailure;
+    client.onMessageArrived = onMessageArrived;
+
+    client.connect({
+      onSuccess: onConnect,
+      onFailure: onFailure,
+      useSSL: false
+    });
+  </script>
 </body>
 </html>
