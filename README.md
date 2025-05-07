@@ -2,7 +2,7 @@
 
 # Project Overview
 
-![project overview](./assets/overview.drawio.png)
+![project-overview](https://github.com/user-attachments/assets/2bc733ac-9805-478d-ab15-95698acb7332)
 
 # Project Setup and Usage Guide
 
