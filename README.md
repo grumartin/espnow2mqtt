@@ -8,7 +8,7 @@
 
 This project consists of three main parts:
 
-1. **esp_sensors**: Code for the ESP8266/ESP32 sensors, which send data to a central gateway via ESP-NOW.
+1. **examples**: Code for the ESP8266/ESP32 sensors, which send data to a central gateway via ESP-NOW.
 2. **esp2mqttGateway**: Code for the ESP-based gateway that receives data from the sensors and forwards it to an MQTT broker.
 3. **raspberrypi**: A Raspberry Pi setup that runs Mosquitto (MQTT broker) in a Docker container and serves a web interface using Nginx.
 
