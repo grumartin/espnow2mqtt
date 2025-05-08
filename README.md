@@ -16,7 +16,7 @@ Additionally, we will cover how to use **PlatformIO** to flash the ESP devices v
 
 ## Project Folder Structure
 
-### 1. `esp_sensors/`
+### 1. `examples/`
 This folder contains the code for the ESP devices (ESP8266/ESP32) that act as sensors. These devices send sensor data to the **esp2mqttGateway** via ESP-NOW. The sensors may include temperature, humidity, or other sensor data, depending on the specific application.
 
 ### 2. `esp2mqttGateway/`
