@@ -59,33 +59,33 @@ sudo docker ps
 
 Install Nginx with the following command
 
-    ```bash
+```bash
     sudo apt-get install nginx
-    ```
+```
     Installs Nginx on the Raspberry. To start it, execute following command
 
-    ```bash
+ ```bash
     sudo systemctl start nginx
-    ```
+  ```
 
    Next copy the index.html File to the Raspberry
-   ```bash
+```bash
    scp ./index.html pi@<raspberry_pi_ip>:/home/pi/index.html 
-   ```
+```
 
    Move the file to the following directory
-   ```bash 
+```bash 
    sudo cp /home/pi/index.html /var/www/html/
-   ```
+```
   
    Update the index.html with the actual IP of the Raspberry
-   ```bash
+```bash
    sudo nano /var/www/html/index.html
-   ```
+```
   
    Lastly resart nginx with the command
-   ```bash 
+```bash 
    sudo systemctl restart nginx
-   ```
+```
 
  
